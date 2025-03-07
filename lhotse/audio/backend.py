@@ -1,5 +1,6 @@
 import logging
 import os
+import io
 import re
 import sys
 import traceback
@@ -13,6 +14,8 @@ from typing import Any, Generator, List, NamedTuple, Optional, Tuple, Union
 import numpy as np
 import torch
 
+from petrel_client.client import Client
+
 from lhotse.audio.utils import (
     AudioLoadingError,
     AudioSavingError,
@@ -24,6 +27,9 @@ from lhotse.utils import Pathlike, Seconds, compute_num_samples, is_torchaudio_a
 
 _FFMPEG_TORCHAUDIO_INFO_ENABLED: bool = is_torchaudio_available()
 CURRENT_AUDIO_BACKEND: Optional["AudioBackend"] = None
+
+S3_CONFIG = "/mnt/petrelfs/share_data/housiyuan/petreloss.conf"
+GLOBAL_S3_CLIENT = Client(S3_CONFIG)
 
 
 def available_audio_backends() -> List[str]:
@@ -118,6 +124,7 @@ def get_default_audio_backend() -> "AudioBackend":
     backends += [
         # Use sph2pipe for .sph and shorten encoded audio
         Sph2pipeSubprocessBackend(),
+        # S3LibsndfileBackend(),
         # Libsndfile seems to be the most stable backend in terms of covered formats and performance.
         LibsndfileBackend(),
         # New FFMPEG backend available only in torchaudio 2.0.x+
@@ -481,6 +488,62 @@ class TorchaudioFFMPEGBackend(AudioBackend):
         force_opus_sampling_rate: Optional[int] = None,
     ):
         return torchaudio_ffmpeg_streamer_info(path_or_fd)
+
+class S3LibsndfileBackend(AudioBackend):
+    """
+    A backend that supports reading audio files from S3 using PySoundFile.
+    """
+
+    def __init__(self, s3_client=None):
+        self.s3_client = GLOBAL_S3_CLIENT
+
+    def read_audio(
+        self,
+        path_or_fd: Union[str, Path],
+        offset: float = 0.0,
+        duration: Optional[float] = None,
+        force_opus_sampling_rate: Optional[int] = None,
+    ) -> Tuple[np.ndarray, int]:
+        import pdb; pdb.set_trace()
+        if isinstance(path_or_fd, (str, Path)) and str(path_or_fd).startswith("s3://"):
+            audio_bytes = self._download_s3_file(path_or_fd)
+            path_or_fd = io.BytesIO(audio_bytes)
+        
+        return self._soundfile_load(path_or_fd, offset, duration)
+
+    def _download_s3_file(self, s3_path: str) -> bytes:
+        response = self.s3_client.get(s3_path)
+        return response
+
+    def _soundfile_load(
+        self, path_or_fd: Union[io.BytesIO, str, Path], offset: float, duration: Optional[float]
+    ) -> Tuple[np.ndarray, int]:
+        import soundfile as sf
+        
+        with sf.SoundFile(path_or_fd) as sf_desc:
+            sampling_rate = sf_desc.samplerate
+            if offset > 0:
+                sf_desc.seek(int(offset * sampling_rate))
+            frame_duration = int(duration * sampling_rate) if duration else -1
+            return sf_desc.read(frames=frame_duration, dtype=np.float32, always_2d=True).T, sampling_rate
+
+    def handles_special_case(self, path_or_fd: Union[str, Path, io.BytesIO]) -> bool:
+        return isinstance(path_or_fd, str) and path_or_fd.startswith("s3://")
+
+    def is_applicable(self, path_or_fd: Union[str, Path, io.BytesIO]) -> bool:
+        return True  # This backend can handle all paths, including S3 URLs
+
+    def supports_save(self) -> bool:
+        return False  # S3LibsndfileBackend does not support saving directly to S3
+
+    def supports_info(self) -> bool:
+        return True
+
+    def info(self, path_or_fd: Union[str, Path, io.BytesIO]):
+        if isinstance(path_or_fd, str) and path_or_fd.startswith("s3://"):
+            audio_bytes = self._download_s3_file(path_or_fd)
+            path_or_fd = io.BytesIO(audio_bytes)
+        return sf.info(path_or_fd)
 
 
 class LibsndfileBackend(AudioBackend):

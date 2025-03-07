@@ -30,6 +30,9 @@ from lhotse.utils import (
 
 PathOrFilelike = Union[str, BytesIO, FileIO]
 
+from petrel_client.client import Client
+S3_CONFIG = "/mnt/petrelfs/housiyuan/petreloss.conf"
+GLOBAL_S3_CLIENT = Client(S3_CONFIG)
 
 @dataclass
 class AudioSource:
@@ -300,7 +303,9 @@ class AudioSource:
 
             # Let's assume 'self.source' is url to unchangeable file,
             # never a microphone-stream or a live-stream.
-            audio_bytes = AudioCache.try_cache(self.source)
+            audio_bytes = GLOBAL_S3_CLIENT.get(self.source)
+            
+            # audio_bytes = AudioCache.try_cache(self.source)
             if not audio_bytes:
                 with SmartOpen.open(self.source, "rb") as f:
                     audio_bytes = f.read()
