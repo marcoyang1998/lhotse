@@ -31,7 +31,7 @@ from lhotse.utils import (
 PathOrFilelike = Union[str, BytesIO, FileIO]
 
 from petrel_client.client import Client
-S3_CONFIG = "/mnt/petrelfs/housiyuan/petreloss.conf"
+S3_CONFIG = "/mnt/petrelfs/share_data/housiyuan/petreloss.conf"
 GLOBAL_S3_CLIENT = Client(S3_CONFIG)
 
 @dataclass
