@@ -292,7 +292,6 @@ class AudioSource:
             source = BytesIO(audio_bytes)
 
         elif self.type == "url":
-
             if offset != 0.0 or duration is not None and not AudioCache.enabled():
                 warnings.warn(
                     "You requested a subset of a recording that is read from URL. "
