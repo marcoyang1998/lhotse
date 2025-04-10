@@ -216,7 +216,7 @@ class SharWriter:
 
         # We will write only the relevant subset of the binary data alongside cut,
         # so we need to update the offset (start).
-        cut = fastcopy(cut, start=0)
+        # cut = fastcopy(cut, start=0)
 
         if "cuts" in self.writers:
             self.writers["cuts"].write(cut)
