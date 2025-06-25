@@ -31,7 +31,7 @@ from lhotse.utils import (
 PathOrFilelike = Union[str, BytesIO, FileIO]
 
 from petrel_client.client import Client
-S3_CONFIG = "/mnt/petrelfs/share_data/housiyuan/petreloss.conf"
+S3_CONFIG = "/mnt/petrelfs/zhangchen/petreloss.conf"
 GLOBAL_S3_CLIENT = Client(S3_CONFIG)
 
 @dataclass
@@ -292,7 +292,7 @@ class AudioSource:
             source = BytesIO(audio_bytes)
 
         elif self.type == "url":
-            if offset != 0.0 or duration is not None and not AudioCache.enabled():
+            if offset != 0.0 and duration is not None and not AudioCache.enabled():
                 warnings.warn(
                     "You requested a subset of a recording that is read from URL. "
                     "Expect large I/O overhead if you are going to read many chunks like these, "

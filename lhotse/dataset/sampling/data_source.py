@@ -123,7 +123,7 @@ class WeightedDataSource(DataSource):
             num_samples (int): The number of samples to be drawn. Must smaller than the total number of cuts
         """
         super().__init__(items=items)
-        assert len(items) == len(weights), "The length should match"
+        assert len(items) == len(weights), f"The length should match! But got {len(items)} items with {len(weights)} weights"
         assert num_samples < len(
             weights
         ), "The number of samples to be drawn should not exceed the dataset size"

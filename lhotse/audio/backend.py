@@ -28,7 +28,7 @@ from lhotse.utils import Pathlike, Seconds, compute_num_samples, is_torchaudio_a
 _FFMPEG_TORCHAUDIO_INFO_ENABLED: bool = is_torchaudio_available()
 CURRENT_AUDIO_BACKEND: Optional["AudioBackend"] = None
 
-S3_CONFIG = "/mnt/petrelfs/share_data/housiyuan/petreloss.conf"
+S3_CONFIG = "/mnt/petrelfs/zhangchen/petreloss.conf"
 GLOBAL_S3_CLIENT = Client(S3_CONFIG)
 
 
